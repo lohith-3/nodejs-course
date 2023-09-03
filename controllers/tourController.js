@@ -1,5 +1,12 @@
 const Tour = require('../models/tourModel');
 
+exports.aliasTopTours = (req, res, next) => {
+  req.query.limit = 5;
+  req.query.sort = '-ratingsAverage,price';
+  req.query.fields = 'name,price,ratingsAverage,summary,difficulty';
+  next();
+};
+
 exports.getAllTours = async (req, res, next) => {
   try {
     let query = Tour.find();
@@ -129,6 +136,146 @@ exports.deleteTour = async (req, res, next) => {
     res.status(204).json({
       status: 'success',
       data: null,
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'Failed',
+      message: err.message,
+    });
+  }
+};
+
+// Aggregation
+// https://studio3t.com/knowledge-base/articles/mongodb-aggregation-framework/
+
+exports.getTourStats = async (req, res, next) => {
+  try {
+    // const stats = await Tour.aggregate([
+    //   { $match: { ratingsAverage: { $gte: 4.5 } } },
+    //   {
+    //     $project: {
+    //       _id: 0,
+    //       name: 1,
+    //       price: 1,
+    //       ratingsAverage: 1,
+    //       summary: 1,
+    //       difficulty: 1,
+    //     },
+    //   },
+    //   {
+    //     $group: { _id: { $toUpper: '$difficulty' }, totaldocs: { $sum: 1 } },
+    //   },
+    // ]);
+    ///////////////////////////////
+
+    // const stats = await Tour.aggregate([
+    //   { $match: { ratingsAverage: { $gte: 4.5 } } },
+    //   { $unwind: '$startDates' },
+    //   {
+    //     $project: {
+    //       _id: 0,
+    //       name: 1,
+    //       price: 1,
+    //       ratingsAverage: 1,
+    //       summary: 1,
+    //       difficulty: 1,
+    //     },
+    //   },
+    //   { $sort: { ratingsAverage: -1 } },
+    //   { $limit: 6 },
+    //   { $addFields: { greatTours: true } },
+    // ]);
+    //////////////////////////////////////////
+
+    // const stats = await Tour.aggregate([
+    //   { $unwind: '$startDates' },
+    //   { $count: 'total_documents' },
+    // ]);
+    //////////////////////////////////
+    // const stats = await Tour.aggregate([{ $sortByCount: '$difficulty' }]);
+
+    //////////////////////////////////////////////
+
+    const stats = await Tour.aggregate([
+      { $match: { ratingsAverage: { $gte: 4.5 } } },
+      {
+        $group: {
+          _id: { $toUpper: '$difficulty' },
+          numberOfTours: { $sum: 1 },
+          numberOfRatings: { $sum: '$ratingsQuantity' },
+          averageRating: { $avg: '$ratingsAverage' },
+          averagePrice: { $avg: '$price' },
+          minPrice: { $min: '$price' },
+          maxPrice: { $max: '$price' },
+        },
+      },
+      { $sort: { averagePrice: 1 } },
+      // {
+      //   $match: { _id: { $ne: 'EASY' } },
+      // },
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      result: stats.length,
+      data: stats,
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'Failed',
+      message: err.message,
+    });
+  }
+};
+
+exports.getMonthlyPlan = async (req, res, next) => {
+  try {
+    const year = req.params.year * 1;
+
+    const plan = await Tour.aggregate([
+      { $unwind: '$startDates' },
+      {
+        $match: {
+          startDates: {
+            $gte: new Date(`${year}-01-01`),
+            $lte: new Date(`${year}-12-31`),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: { $month: '$startDates' },
+          numberOfTourStats: { $sum: 1 },
+          tours: {
+            $push: '$name',
+          },
+        },
+      },
+      {
+        $addFields: { month: '$_id' },
+      },
+      {
+        $project: {
+          _id: 0,
+          month: 1,
+          numberOfTourStats: 1,
+          tours: 1,
+        },
+      },
+      {
+        $sort: { numberOfTourStats: -1 },
+      },
+      {
+        $limit: 16,
+      },
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      result: plan.length,
+      data: {
+        plan,
+      },
     });
   } catch (err) {
     res.status(400).json({
