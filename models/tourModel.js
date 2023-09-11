@@ -95,6 +95,10 @@ const tourSchema = new mongoose.Schema(
   }
 );
 
+// NDM - Node Debugger Manager
+// npm i ndb --global
+// Add this script ( "debug": "ndb server.js" ) in package.json
+
 // Validation
 
 // Validation is basically checking if the entered values
@@ -135,7 +139,7 @@ tourSchema.post('save', function (doc, next) {
 
 tourSchema.pre(/^find/, function (next) {
   // console.log(this, 'query');
-  this.find({ secretTour: { $eq: false } });
+  // this.find({ secretTour: { $eq: false } });
   this.start = Date.now();
   next();
 });
