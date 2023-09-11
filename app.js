@@ -1,6 +1,8 @@
 const express = require('express');
 const morgan = require('morgan');
 
+const AppError = require('./utils/appError');
+const globalErrorHanlder = require('./controllers/errorController');
 const tourRouter = require('./routes/tourRoutes');
 
 const app = express();
@@ -30,9 +32,9 @@ app.all('*', (req, res, next) => {
   //   message: `Can't find ${req.url} on this server!`,
   // });
 
-  const err = new Error(`Can't find ${req.url} on this server!`);
-  err.status = 'Failed';
-  err.statusCode = 404;
+  // const err = new Error(`Can't find ${req.url} on this server!`);
+  // err.status = 'Failed';
+  // err.statusCode = 404;
 
   // So if the next function receives an argument
   // no matter what it is, express will automatically
@@ -48,7 +50,8 @@ app.all('*', (req, res, next) => {
   // global error handling middleware which will then be
   // executed
 
-  next(err);
+  // next(err);
+  next(new AppError(`Can't find ${req.url} on this server!`, 404));
 });
 
 // MIDDLEWARE
@@ -60,14 +63,6 @@ app.all('*', (req, res, next) => {
 // recognize it as an error handling middleware and
 // therefore only call it when there is an error.
 
-app.use((err, req, res, next) => {
-  err.statusCode = err.statusCode || 500;
-  err.status = err.status || 'error';
-
-  res.status(err.statusCode).json({
-    status: err.status,
-    message: err.message,
-  });
-});
+app.use(globalErrorHanlder);
 
 module.exports = app;
