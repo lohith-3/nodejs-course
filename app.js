@@ -57,7 +57,7 @@ app.all('*', (req, res, next) => {
 // MIDDLEWARE
 // To handle the errors
 
-// So define an error handlinh middleware, all we
+// So define an error handling middleware, all we
 // need to do is to give the middleware function
 // four arguments and express will then automatically
 // recognize it as an error handling middleware and
