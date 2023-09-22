@@ -4,6 +4,7 @@ const morgan = require('morgan');
 const AppError = require('./utils/appError');
 const globalErrorHanlder = require('./controllers/errorController');
 const tourRouter = require('./routes/tourRoutes');
+const userRouter = require('./routes/userRoutes');
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use((req, res, next) => {
 
 // ROUTES
 app.use('/api/v1/tours', tourRouter);
+app.use('/api/v1/users', userRouter);
 
 // MIDDLEWARE
 // FOR ALL HTTP VERBS
