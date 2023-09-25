@@ -34,6 +34,9 @@ const userSchema = new mongoose.Schema({
       message: `Passwords are not the same`,
     },
   },
+  passwordChangedAt: {
+    type: Date,
+  },
 });
 
 // Document Middleware: runs before .save() and .create()
@@ -54,11 +57,28 @@ userSchema.pre('save', async function (next) {
 // So an instance method is basically a method that is
 // gonna be available on all documents of a certain collection.
 
+// In an instance method, the this keyword always points to
+// the current document
+
 userSchema.methods.correctPassword = async function (
   candidatePassword,
   userPassword
 ) {
   return await bcrypt.compare(candidatePassword, userPassword);
+};
+
+userSchema.methods.changePasswordAfter = function (JWTTimeStamp) {
+  if (this.passwordChangedAt) {
+    const changedTimeStamp = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10
+    );
+    // 100 < 200 (TRUE) // 300 < 200 (FALSE)
+    return JWTTimeStamp < changedTimeStamp;
+  }
+
+  // False means not changed
+  return false;
 };
 
 const User = mongoose.model('User', userSchema);
