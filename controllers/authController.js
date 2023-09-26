@@ -16,6 +16,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     name: req.body.name,
     email: req.body.email,
     password: req.body.password,
+    role: req.body.role,
     passwordConfirm: req.body.passwordConfirm,
     passwordChangedAt: req.body.passwordChangedAt,
   });
@@ -92,3 +93,28 @@ exports.protect = catchAsync(async (req, res, next) => {
   req.user = currentUser;
   next();
 });
+
+exports.restrictTo = (...roles) => {
+  return (req, res, next) => {
+    // This is a closure
+    // roles ['admin', 'lead-guide'].
+
+    // role is just now 'user'
+    if (!roles.includes(req.user.role)) {
+      return next(
+        new AppError('You do not have permission to perform this action', 403)
+      );
+    }
+
+    next();
+  };
+};
+
+// Authorization
+
+// So, again with authorization we basically check
+// if a certain user is allowed to access a certain
+// resource even if he is logged in.
+
+// So not all logged in Users will be able to perform
+// the same actions in our API
