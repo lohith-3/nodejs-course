@@ -77,7 +77,6 @@ exports.protect = catchAsync(async (req, res, next) => {
 
   // 3) check if user still exists
   const currentUser = await User.findById(decoded.id);
-  console.log(currentUser);
   if (!currentUser) {
     return next(
       new AppError('The user belonging to the token does no longer exist', 401)
@@ -206,6 +205,41 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   await user.save();
   // 3) Update the changedPasswordAt property for the user
   // 4) Log the user in, send JWT to the client
+  const token = signInToken(user._id);
+
+  res.status(200).json({
+    status: 'success',
+    token,
+  });
+});
+
+// Now remember that this password updating functionality
+// is only for logged-in users but still we need the user
+// to pass in his current password. so in order to confirm
+// that user actually is who he says he is.
+
+// Someone would be able to get access to your computer
+// and change the password without you knowing it.
+// So as a security measure we always need to ask for the
+// current password before updating it.
+
+exports.updatePassword = catchAsync(async (req, res, next) => {
+  // 1) Get the user from collection
+  const user = await User.findById(req.user._id).select('+password');
+  // 2) Check if posted current password is correct
+  const isPasswordCorrect = await user.correctPassword(
+    req.body.passwordCurrent,
+    user.password
+  );
+  if (!isPasswordCorrect) {
+    return next(new AppError('Please enter your password correctly', 400));
+  }
+  // 3) If the password is correct then update the password
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+
+  await user.save();
+  // 4) Log user in, send JWT
   const token = signInToken(user._id);
 
   res.status(200).json({
