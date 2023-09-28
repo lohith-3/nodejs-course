@@ -223,7 +223,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 // So as a security measure we always need to ask for the
 // current password before updating it.
 
-exports.updatePassword = catchAsync(async (req, res, next) => {
+exports.updateCurrentUserPassword = catchAsync(async (req, res, next) => {
   // 1) Get the user from collection
   const user = await User.findById(req.user._id).select('+password');
   // 2) Check if posted current password is correct
