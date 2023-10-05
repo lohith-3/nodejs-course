@@ -13,6 +13,43 @@ const signInToken = (id) => {
   });
 };
 
+const createSendToken = (user, statusCode, res) => {
+  const token = signInToken(user._id);
+
+  // So first of all, a cookie is basically just a small piece
+  // of text that a server can send to clients, then when the
+  // client receives a cookie, it will automatically store it
+  // and then automatically send it back along with all future
+  // requests to the same server.
+
+  // All right, so again browser automatically stores a cookie
+  // that it receives and sends it back in all future requests
+  // to that server where it came from
+
+  const cookieOptions = {
+    expires: new Date(
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+    ),
+    httpOnly: true,
+  };
+
+  if (process.env.NODE_ENV.toLocaleLowerCase() === 'production') {
+    cookieOptions.secure = true;
+  }
+  res.cookie('jwt', token, cookieOptions);
+
+  // Remove the password from response
+  user.password = undefined;
+
+  res.status(statusCode).json({
+    status: 'success',
+    token,
+    data: {
+      user,
+    },
+  });
+};
+
 exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
     name: req.body.name,
@@ -23,15 +60,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     passwordChangedAt: req.body.passwordChangedAt,
   });
 
-  const token = signInToken(newUser._id);
-
-  res.status(201).json({
-    status: 'success',
-    token,
-    data: {
-      user: newUser,
-    },
-  });
+  createSendToken(newUser, 201, res);
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -51,11 +80,7 @@ exports.login = catchAsync(async (req, res, next) => {
   }
 
   // 3) If everything is OK, send token to client
-  const token = signInToken(user._id);
-  res.status(200).json({
-    status: 'success',
-    token,
-  });
+  createSendToken(user, 200, res);
 });
 
 exports.protect = catchAsync(async (req, res, next) => {
@@ -205,12 +230,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   await user.save();
   // 3) Update the changedPasswordAt property for the user
   // 4) Log the user in, send JWT to the client
-  const token = signInToken(user._id);
-
-  res.status(200).json({
-    status: 'success',
-    token,
-  });
+  createSendToken(user, 200, res);
 });
 
 // Now remember that this password updating functionality
@@ -240,10 +260,6 @@ exports.updateCurrentUserPassword = catchAsync(async (req, res, next) => {
 
   await user.save();
   // 4) Log user in, send JWT
-  const token = signInToken(user._id);
 
-  res.status(200).json({
-    status: 'success',
-    token,
-  });
+  createSendToken(user, 200, res);
 });
