@@ -1,6 +1,7 @@
 const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 
 const AppError = require('./utils/appError');
 const globalErrorHanlder = require('./controllers/errorController');
@@ -10,9 +11,14 @@ const userRouter = require('./routes/userRoutes');
 const app = express();
 
 // GLOBAL MIDDLEWARES
+
+// Development logging
 if (process.env.NODE_ENV.toLocaleLowerCase() === 'development') {
   app.use(morgan('dev'));
 }
+
+// Set Security HTTP Headers
+app.use(helmet());
 
 // So basically what the rate limiter is gonna do
 // is to count the numbers of requests coming from one
@@ -21,6 +27,7 @@ if (process.env.NODE_ENV.toLocaleLowerCase() === 'development') {
 
 // npm install express-rate-limit
 
+// Limit requests from same IP
 const limiter = rateLimit({
   max: 100,
   windowMs: 60 * 60 * 1000,
@@ -30,8 +37,13 @@ const limiter = rateLimit({
 // This will affect all of the routes which will start with /api
 app.use('/api', limiter);
 
-app.use(express.json());
+// Body parser, reading data from body into req.body
+app.use(express.json({ limit: '10kb' }));
 
+// Serving static files
+// Not Implemented
+
+// Test middleware
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
   next();
