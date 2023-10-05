@@ -1,5 +1,6 @@
 const express = require('express');
 const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 
 const AppError = require('./utils/appError');
 const globalErrorHanlder = require('./controllers/errorController');
@@ -8,9 +9,26 @@ const userRouter = require('./routes/userRoutes');
 
 const app = express();
 
+// GLOBAL MIDDLEWARES
 if (process.env.NODE_ENV.toLocaleLowerCase() === 'development') {
   app.use(morgan('dev'));
 }
+
+// So basically what the rate limiter is gonna do
+// is to count the numbers of requests coming from one
+// IP and then when there are too many requests block
+// these requests
+
+// npm install express-rate-limit
+
+const limiter = rateLimit({
+  max: 100,
+  windowMs: 60 * 60 * 1000,
+  message: 'Too many requests from this IP. Please try again in an hour',
+});
+
+// This will affect all of the routes which will start with /api
+app.use('/api', limiter);
 
 app.use(express.json());
 
